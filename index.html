@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>J2ME Web - Auto Launcher</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+        }
+        .loading-box {
+            background: #1e1e1e;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            max-width: 90%;
+            width: 380px;
+        }
+        .spinner {
+            border: 4px solid #333;
+            border-top: 4px solid #00e676;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        h2 { margin-top: 0; font-size: 20px; }
+        p { color: #aaa; font-size: 14px; margin-bottom: 0; }
+    </style>
+</head>
+<body>
+
+    <div class="loading-box">
+        <h2>🎮 Đang tải game...</h2>
+        <div class="spinner"></div>
+        <p>Hệ thống đang tự động nạp game.jar và kết nối mạng...</p>
+    </div>
+
+    <script>
+        // 1. Link Raw chuẩn tới file game.jar trong repository của bạn
+        const GITHUB_RAW_JAR = "https://raw.githubusercontent.com/redbullguid-afk/play-game-java-online-on-tv-web-/main/game.jar";
+
+        // 2. Mã hóa URL để trình duyệt Tivi không bị lỗi ký tự đặc biệt
+        const encodedJarUrl = encodeURIComponent(GITHUB_RAW_JAR);
+
+        // 3. Tự động chuyển hướng và truyền file game vào bộ giả lập web
+        window.location.href = 'web/?jar=' + encodedJarUrl;
+    </script>
+
+</body>
+</html>
