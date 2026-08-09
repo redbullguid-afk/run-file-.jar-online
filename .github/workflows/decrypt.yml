@@ -1,0 +1,31 @@
+name: Auto Decrypt Code
+
+on:
+  workflow_dispatch:
+    inputs:
+      filename:
+        description: 'Tên file mã hóa trong repo (Ví dụ: input.js)'
+        required: true
+        default: 'input.js'
+
+jobs:
+  decrypt-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout mã nguồn
+        uses: actions/checkout@v4
+
+      - name: Cài đặt Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Chạy script giải mã
+        run: node decrypt.js ${{ github.event.inputs.filename }} decrypted_result.js
+
+      - name: Tải file kết quả (.js) lên Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: decrypted-js-file
+          path: decrypted_result.js
