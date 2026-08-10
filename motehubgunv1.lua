@@ -1,5 +1,6 @@
 -- =============================================================
--- Delta Mod Menu Full: Anti-AFK + NoClip Bullets + Smooth Aimbot + ESP Glow
+-- Delta Mod Menu Full (5 In 1): 
+-- Anti-AFK | NoClip Bullets | Smooth Aimbot | ESP Glow | Invisible Shield
 -- Tối ưu hoàn toàn cho Delta Executor (Mobile & PC)
 -- =============================================================
 
@@ -26,7 +27,8 @@ local Config = {
     FOV_Circle = { Visible = false, Color = Color3.fromRGB(255, 0, 0), Thickness = 2, Transparency = 0.7, NumSides = 64 },
     NoClipBullets = false,
     AntiAFK = true,
-    ESP = false -- Tính năng ESP phát sáng
+    ESP = false,
+    Shield = false -- Chức năng Khiên Bất Tử / Tường vô hình
 }
 
 -- // CÔNG CỤ VẼ FOV CIRCLE
@@ -73,7 +75,7 @@ MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 MainFrame.Position = UDim2.new(0.05, 65, 0.2, 0)
-MainFrame.Size = UDim2.new(0, 200, 0, 250) -- Tăng kích thước để chứa thêm nút ESP
+MainFrame.Size = UDim2.new(0, 200, 0, 290) -- Mở rộng menu để đủ chứa 5 nút
 MainFrame.Visible = false
 
 local UICornerFrame = Instance.new("UICorner")
@@ -127,7 +129,57 @@ local function CreateToggleButton(text, layoutOrder, callback)
     return Btn
 end
 
--- Tạo 4 nút chức năng
+-- MÃ NGUỒN XỬ LÝ KHIÊN BẤT TỬ
+local function ToggleShield(state)
+    Config.Shield = state
+    local char = LocalPlayer.Character
+    if not char then return end
+
+    if state then
+        if char:FindFirstChild("InvisibleShield") then char.InvisibleShield:Destroy() end
+
+        local root = char:WaitForChild("HumanoidRootPart", 3)
+        if not root then return end
+
+        -- Tạo quả cầu khiên vô hình bao quanh nhân vật
+        local Shield = Instance.new("Part")
+        Shield.Name = "InvisibleShield"
+        Shield.Shape = Enum.PartType.Ball
+        Shield.Size = Vector3.new(12, 12, 12) -- Kích thước khiên bao quanh
+        Shield.Transparency = 1 -- Vô hình
+        Shield.CanCollide = true
+        Shield.Massless = true
+        Shield.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+        Shield.Parent = char
+
+        local Weld = Instance.new("WeldConstraint")
+        Weld.Part0 = root
+        Weld.Part1 = Shield
+        Weld.Parent = Shield
+
+        -- Bỏ va chạm CHỈ VỚI BẢN THÂN NHÂN VẬT (chống đơ/bay khi di chuyển)
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") and part ~= Shield then
+                local ncc = Instance.new("NoCollisionConstraint")
+                ncc.Part0 = Shield
+                ncc.Part1 = part
+                ncc.Parent = Shield
+            end
+        end
+    else
+        if char:FindFirstChild("InvisibleShield") then
+            char.InvisibleShield:Destroy()
+        end
+    end
+end
+
+-- Tự động bật lại khiên khi hồi sinh nhân vật
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(1)
+    if Config.Shield then ToggleShield(true) end
+end)
+
+-- Tạo đủ 5 nút chức năng
 CreateToggleButton("Anti-AFK", 1, function(state) Config.AntiAFK = state end)
 CreateToggleButton("Aimbot & FOV", 2, function(state) 
     Config.Aimbot.Enabled = state 
@@ -135,6 +187,7 @@ CreateToggleButton("Aimbot & FOV", 2, function(state)
 end)
 CreateToggleButton("Đạn NoClip", 3, function(state) Config.NoClipBullets = state end)
 CreateToggleButton("ESP Phát Sáng", 4, function(state) Config.ESP = state end)
+CreateToggleButton("Khiên Bất Tử", 5, function(state) ToggleShield(state) end)
 
 -- KÉO NÚT MENU TRÒN
 local dragging = false
@@ -174,7 +227,7 @@ CircleBtn.MouseButton1Click:Connect(function()
 end)
 
 -- =============================================================
--- 2. CHỨC NĂNG ESP PHÁT SÁNG (HIGHLIGHT ESP)
+-- 2. CHỨC NĂNG ESP PHÁT SÁNG
 -- =============================================================
 
 local function ApplyESP(player)
@@ -189,27 +242,23 @@ local function ApplyESP(player)
             highlight = Instance.new("Highlight")
             highlight.Name = "ESPHighlight"
             highlight.Parent = char
-            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- Luôn hiện xuyên tường
-            highlight.FillTransparency = 0.5 -- Độ trong suốt của thân
-            highlight.OutlineTransparency = 0 -- Độ rõ của đường viền
+            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            highlight.FillTransparency = 0.5
+            highlight.OutlineTransparency = 0
         end
 
-        -- Phân biệt màu sắc Đội / Kẻ địch
         if LocalPlayer.Team and player.Team and LocalPlayer.Team == player.Team then
-            highlight.FillColor = Color3.fromRGB(0, 255, 0) -- Xanh lá (Đồng đội)
+            highlight.FillColor = Color3.fromRGB(0, 255, 0)
             highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
         else
-            highlight.FillColor = Color3.fromRGB(255, 0, 0) -- Đỏ (Kẻ địch)
+            highlight.FillColor = Color3.fromRGB(255, 0, 0)
             highlight.OutlineColor = Color3.fromRGB(255, 255, 0)
         end
     else
-        if highlight then
-            highlight:Destroy()
-        end
+        if highlight then highlight:Destroy() end
     end
 end
 
--- Vòng lặp cập nhật ESP định kỳ
 task.spawn(function()
     while task.wait(0.5) do
         for _, player in pairs(Players:GetPlayers()) do
@@ -219,10 +268,10 @@ task.spawn(function()
 end)
 
 -- =============================================================
--- 3. CÁC TÍNH NĂNG KHÁC (Anti-AFK, NoClip, Aimbot)
+-- 3. CÁC TÍNH NĂNG KHÁC (Anti-AFK, Đạn NoClip, Smooth Aimbot)
 -- =============================================================
 
--- A. Anti-AFK
+-- Anti-AFK
 LocalPlayer.Idled:Connect(function()
     if Config.AntiAFK then
         VirtualUser:CaptureController()
@@ -230,7 +279,7 @@ LocalPlayer.Idled:Connect(function()
     end
 end)
 
--- B. Đạn NoClip
+-- Đạn NoClip
 local bulletKeywords = {"bullet", "ammo", "projectile", "ray", "pellet", "part", "casing", "shot"}
 RunService.Stepped:Connect(function()
     if not Config.NoClipBullets then return end
@@ -247,7 +296,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- C. Aimbot Logic
+-- Aimbot Logic
 local function GetClosestPlayerInFOV()
     local ClosestPlayer = nil
     local ShortestDistance = Config.Aimbot.AimFOV
@@ -288,7 +337,7 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- D. Render Loop
+-- Render Loop
 RunService.RenderStepped:Connect(function()
     fov_circle.Visible = Config.FOV_Circle.Visible
     if Config.FOV_Circle.Visible then
@@ -308,6 +357,6 @@ end)
 
 StarterGui:SetCore("SendNotification", {
     Title = "Delta Mod Menu",
-    Text = "Đã thêm ESP Phát Sáng Xuyên Tường!",
+    Text = "Đã tích hợp đủ 5 chức năng!",
     Duration = 5
 })
