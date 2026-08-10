@@ -1,6 +1,6 @@
 -- =============================================================
--- Anti-AFK + Bullet NoClip + Aimbot FOV (Draggable GUI Menu)
--- Tối ưu hóa hoàn toàn cho Delta Executor (Mobile & PC)
+-- Delta Mod Menu Full: Anti-AFK + NoClip Bullets + Smooth Aimbot + ESP Glow
+-- Tối ưu hoàn toàn cho Delta Executor (Mobile & PC)
 -- =============================================================
 
 local Players = game:GetService("Players")
@@ -16,10 +16,17 @@ local Camera = Workspace.CurrentCamera
 
 -- // CẤU HÌNH TÍNH NĂNG
 local Config = {
-    Aimbot = { Enabled = false, Aiming = false, TargetPart = "Head", AimFOV = 150 },
+    Aimbot = { 
+        Enabled = false, 
+        Aiming = false, 
+        TargetPart = "Head", 
+        AimFOV = 150,
+        Smoothness = 0.25
+    },
     FOV_Circle = { Visible = false, Color = Color3.fromRGB(255, 0, 0), Thickness = 2, Transparency = 0.7, NumSides = 64 },
     NoClipBullets = false,
-    AntiAFK = true
+    AntiAFK = true,
+    ESP = false -- Tính năng ESP phát sáng
 }
 
 -- // CÔNG CỤ VẼ FOV CIRCLE
@@ -33,15 +40,13 @@ fov_circle.Radius = Config.Aimbot.AimFOV
 fov_circle.Filled = false
 
 -- =============================================================
--- 1. TẠO GIAO DIỆN GUI (NÚT TRÒN & MENU)
+-- 1. GIAO DIỆN GUI (NÚT TRÒN & MENU)
 -- =============================================================
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "DeltaModMenu"
--- Đặt vào CoreGui nếu có thể để không bị reset khi nhân vật chết
 ScreenGui.Parent = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
--- A. Nút tròn mở Menu (Main Circle Button)
 local CircleBtn = Instance.new("TextButton")
 CircleBtn.Name = "CircleToggle"
 CircleBtn.Parent = ScreenGui
@@ -55,7 +60,7 @@ CircleBtn.Font = Enum.Font.SourceSansBold
 CircleBtn.Active = true
 
 local UICornerBtn = Instance.new("UICorner")
-UICornerBtn.CornerRadius = UDim.new(1, 0) -- Làm cho nút hoàn toàn tròn
+UICornerBtn.CornerRadius = UDim.new(1, 0)
 UICornerBtn.Parent = CircleBtn
 
 local UIStrokeBtn = Instance.new("UIStroke")
@@ -63,13 +68,12 @@ UIStrokeBtn.Color = Color3.fromRGB(0, 170, 255)
 UIStrokeBtn.Thickness = 2
 UIStrokeBtn.Parent = CircleBtn
 
--- B. Bảng Menu điều khiển (Main Frame)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 MainFrame.Position = UDim2.new(0.05, 65, 0.2, 0)
-MainFrame.Size = UDim2.new(0, 200, 0, 210)
+MainFrame.Size = UDim2.new(0, 200, 0, 250) -- Tăng kích thước để chứa thêm nút ESP
 MainFrame.Visible = false
 
 local UICornerFrame = Instance.new("UICorner")
@@ -91,7 +95,6 @@ UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Padding = UDim.new(0, 8)
 
--- C. Hàm tạo nút Toggle đơn giản
 local function CreateToggleButton(text, layoutOrder, callback)
     local Btn = Instance.new("TextButton")
     Btn.Parent = MainFrame
@@ -124,27 +127,18 @@ local function CreateToggleButton(text, layoutOrder, callback)
     return Btn
 end
 
--- Tạo các nút chức năng
+-- Tạo 4 nút chức năng
 CreateToggleButton("Anti-AFK", 1, function(state) Config.AntiAFK = state end)
 CreateToggleButton("Aimbot & FOV", 2, function(state) 
     Config.Aimbot.Enabled = state 
     Config.FOV_Circle.Visible = state
 end)
 CreateToggleButton("Đạn NoClip", 3, function(state) Config.NoClipBullets = state end)
+CreateToggleButton("ESP Phát Sáng", 4, function(state) Config.ESP = state end)
 
--- =============================================================
--- 2. XỬ LÝ DI CHUYỂN NÚT TRÒN (DRAGGABLE SYSTEM)
--- =============================================================
-
+-- KÉO NÚT MENU TRÒN
 local dragging = false
 local dragInput, dragStart, startPos
-
-local function update(input)
-    local delta = input.Position - dragStart
-    CircleBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    -- Giữ bảng Menu luôn đi theo nút tròn
-    MainFrame.Position = UDim2.new(CircleBtn.Position.X.Scale, CircleBtn.Position.X.Offset + 65, CircleBtn.Position.Y.Scale, CircleBtn.Position.Y.Offset)
-end
 
 CircleBtn.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -153,9 +147,7 @@ CircleBtn.InputBegan:Connect(function(input)
         startPos = CircleBtn.Position
 
         input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
         end)
     end
 end)
@@ -168,22 +160,66 @@ end)
 
 UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
-        update(input)
+        local delta = input.Position - dragStart
+        CircleBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        MainFrame.Position = UDim2.new(CircleBtn.Position.X.Scale, CircleBtn.Position.X.Offset + 65, CircleBtn.Position.Y.Scale, CircleBtn.Position.Y.Offset)
     end
 end)
 
--- Nhấn vào nút tròn để Đóng/Mở Menu
 local isMoved = false
 CircleBtn.MouseButton1Down:Connect(function() isMoved = false end)
 CircleBtn.TouchLongPress:Connect(function() isMoved = true end)
 CircleBtn.MouseButton1Click:Connect(function()
-    if not isMoved then
-        MainFrame.Visible = not MainFrame.Visible
+    if not isMoved then MainFrame.Visible = not MainFrame.Visible end
+end)
+
+-- =============================================================
+-- 2. CHỨC NĂNG ESP PHÁT SÁNG (HIGHLIGHT ESP)
+-- =============================================================
+
+local function ApplyESP(player)
+    if player == LocalPlayer then return end
+    local char = player.Character
+    if not char then return end
+
+    local highlight = char:FindFirstChild("ESPHighlight")
+
+    if Config.ESP then
+        if not highlight then
+            highlight = Instance.new("Highlight")
+            highlight.Name = "ESPHighlight"
+            highlight.Parent = char
+            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- Luôn hiện xuyên tường
+            highlight.FillTransparency = 0.5 -- Độ trong suốt của thân
+            highlight.OutlineTransparency = 0 -- Độ rõ của đường viền
+        end
+
+        -- Phân biệt màu sắc Đội / Kẻ địch
+        if LocalPlayer.Team and player.Team and LocalPlayer.Team == player.Team then
+            highlight.FillColor = Color3.fromRGB(0, 255, 0) -- Xanh lá (Đồng đội)
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+        else
+            highlight.FillColor = Color3.fromRGB(255, 0, 0) -- Đỏ (Kẻ địch)
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 0)
+        end
+    else
+        if highlight then
+            highlight:Destroy()
+        end
+    end
+end
+
+-- Vòng lặp cập nhật ESP định kỳ
+task.spawn(function()
+    while task.wait(0.5) do
+        for _, player in pairs(Players:GetPlayers()) do
+            ApplyESP(player)
+        end
     end
 end)
 
 -- =============================================================
--- 3. LOGIC CÁC TÍNH NĂNG GAME
+-- 3. CÁC TÍNH NĂNG KHÁC (Anti-AFK, NoClip, Aimbot)
 -- =============================================================
 
 -- A. Anti-AFK
@@ -195,20 +231,21 @@ LocalPlayer.Idled:Connect(function()
 end)
 
 -- B. Đạn NoClip
-local bulletNames = {"Bullet", "Ammo", "Projectile", "Ray", "Part", "Pellet"}
-local function makeBulletNoClip(child)
+local bulletKeywords = {"bullet", "ammo", "projectile", "ray", "pellet", "part", "casing", "shot"}
+RunService.Stepped:Connect(function()
     if not Config.NoClipBullets then return end
-    for _, name in ipairs(bulletNames) do
-        if string.find(string.lower(child.Name), string.lower(name)) then
-            if child:IsA("BasePart") then child.CanCollide = false end
-            for _, subPart in pairs(child:GetDescendants()) do
-                if subPart:IsA("BasePart") then subPart.CanCollide = false end
+    for _, item in pairs(Workspace:GetChildren()) do
+        local lowerName = string.lower(item.Name)
+        for _, key in ipairs(bulletKeywords) do
+            if string.find(lowerName, key) then
+                if item:IsA("BasePart") then item.CanCollide = false end
+                for _, child in pairs(item:GetDescendants()) do
+                    if child:IsA("BasePart") then child.CanCollide = false end
+                end
             end
         end
     end
-end
-Workspace.ChildAdded:Connect(makeBulletNoClip)
-if Camera then Camera.ChildAdded:Connect(makeBulletNoClip) end
+end)
 
 -- C. Aimbot Logic
 local function GetClosestPlayerInFOV()
@@ -253,25 +290,24 @@ end)
 
 -- D. Render Loop
 RunService.RenderStepped:Connect(function()
-    -- Cập nhật FOV Circle
     fov_circle.Visible = Config.FOV_Circle.Visible
     if Config.FOV_Circle.Visible then
         fov_circle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
         fov_circle.Radius = Config.Aimbot.AimFOV
     end
 
-    -- Khóa Aimbot
     if Config.Aimbot.Enabled and Config.Aimbot.Aiming then
         local Target = GetClosestPlayerInFOV()
         if Target and Target.Character and Target.Character:FindFirstChild(Config.Aimbot.TargetPart) then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, Target.Character[Config.Aimbot.TargetPart].Position)
+            local TargetPos = Target.Character[Config.Aimbot.TargetPart].Position
+            local TargetCFrame = CFrame.new(Camera.CFrame.Position, TargetPos)
+            Camera.CFrame = Camera.CFrame:Lerp(TargetCFrame, Config.Aimbot.Smoothness)
         end
     end
 end)
 
--- Thông báo
 StarterGui:SetCore("SendNotification", {
-    Title = "Delta GUI Loaded",
-    Text = "Nhấn hoặc kéo nút tròn MENU để điều khiển!",
+    Title = "Delta Mod Menu",
+    Text = "Đã thêm ESP Phát Sáng Xuyên Tường!",
     Duration = 5
 })
